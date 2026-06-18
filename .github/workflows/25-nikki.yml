@@ -42,11 +42,11 @@ jobs:
       - name: Organize files for aarch64_cortex-a53&x86_64
         run: |
           mkdir nikki_x86_64 nikki_aarch64_cortex-a53
-          cp nikki_x86_64-openwrt-25.12/*.ipk nikki_x86_64/
-          cp nikki_aarch64_cortex-a53-openwrt-25.12/*.ipk nikki_aarch64_cortex-a53/
+          cp nikki_x86_64-openwrt-25.12/*.apk nikki_x86_64/
+          cp nikki_aarch64_cortex-a53-openwrt-25.12/*.apk nikki_aarch64_cortex-a53/
           # 保存当前路径并进入目标目录
           pushd "nikki_x86_64" >/dev/null || exit 1
-          for file in *~*.ipk; do
+          for file in *~*.apk; do
           [ -e "$file" ] || continue
           # 构造新文件名，去除 ~ 字符
           new_file="$(echo "$file" | tr -d '~')"
@@ -62,7 +62,7 @@ jobs:
           popd >/dev/null
 
           pushd "nikki_aarch64_cortex-a53" >/dev/null || exit 1
-          for file in *~*.ipk; do
+          for file in *~*.apk; do
           [ -e "$file" ] || continue
           # 构造新文件名，去除 ~ 字符
           new_file="$(echo "$file" | tr -d '~')"
@@ -82,12 +82,12 @@ jobs:
         run: |
           cat <<EOF > nikki_x86_64/install.sh
           #!/bin/sh
-          opkg update
+          apk update
           if [ $? -ne 0 ]; then
               echo "update failed。"
               exit 1
           fi
-          opkg install *.ipk
+          apk add --allow-untrusted *.apk
           EOF
           chmod +x nikki_x86_64/install.sh
           cp nikki_x86_64/install.sh nikki_aarch64_cortex-a53/install.sh

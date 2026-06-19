@@ -25,60 +25,39 @@ jobs:
         id: fetch_latest_tag
         run: |
           latest_tag=$(curl -s https://api.github.com/repos/nikkinikki-org/OpenWrt-nikki/releases/latest | jq -r '.tag_name')
-          
+
           echo "LATEST_TAG=$latest_tag" >> $GITHUB_ENV
-          # https://github.com/nikkinikki-org/OpenWrt-nikki/releases/download/v1.17.5/nikki_aarch64_cortex-a53-openwrt-23.05.tar.gz
 
       - name: Clone makeself repository
         run: git clone https://github.com/megastep/makeself.git
 
       - name: Download latest nikki files
         run: |
-          curl -LO $(curl -s https://api.github.com/repos/nikkinikki-org/OpenWrt-nikki/releases/latest | grep -oP '"browser_download_url":\s*".*nikki_aarch64_cortex-a53-openwrt-25.12.tar.gz"' | cut -d '"' -f 4)
           curl -LO $(curl -s https://api.github.com/repos/nikkinikki-org/OpenWrt-nikki/releases/latest | grep -oP '"browser_download_url":\s*".*nikki_x86_64-openwrt-25.12.tar.gz"' | cut -d '"' -f 4)
-          tar --one-top-level=nikki_aarch64_cortex-a53-openwrt-25.12 -xvzf nikki_aarch64_cortex-a53-openwrt-25.12.tar.gz
           tar --one-top-level=nikki_x86_64-openwrt-25.12 -xvzf nikki_x86_64-openwrt-25.12.tar.gz
 
-      - name: Organize files for aarch64_cortex-a53&x86_64
+      - name: Organize files for x86_64
         run: |
-          mkdir nikki_x86_64 nikki_aarch64_cortex-a53
+          mkdir nikki_x86_64
           cp nikki_x86_64-openwrt-25.12/*.apk nikki_x86_64/
-          cp nikki_aarch64_cortex-a53-openwrt-25.12/*.apk nikki_aarch64_cortex-a53/
           # 保存当前路径并进入目标目录
           pushd "nikki_x86_64" >/dev/null || exit 1
           for file in *~*.apk; do
-          [ -e "$file" ] || continue
-          # 构造新文件名，去除 ~ 字符
-          new_file="$(echo "$file" | tr -d '~')"
-          # 如果目标文件名已存在，则提示并跳过
-          if [ -e "$new_file" ]; then
-          echo "目标文件已存在，跳过: $new_file"
-          continue
-          fi
-          # 重命名文件
-          mv "$file" "$new_file"
-          echo "已重命名: $file -> $new_file"
+            [ -e "$file" ] || continue
+            # 构造新文件名，去除 ~ 字符
+            new_file="$(echo "$file" | tr -d '~')"
+            # 如果目标文件名已存在，则提示并跳过
+            if [ -e "$new_file" ]; then
+              echo "目标文件已存在，跳过: $new_file"
+              continue
+            fi
+            # 重命名文件
+            mv "$file" "$new_file"
+            echo "已重命名: $file -> $new_file"
           done
           popd >/dev/null
 
-          pushd "nikki_aarch64_cortex-a53" >/dev/null || exit 1
-          for file in *~*.apk; do
-          [ -e "$file" ] || continue
-          # 构造新文件名，去除 ~ 字符
-          new_file="$(echo "$file" | tr -d '~')"
-          # 如果目标文件名已存在，则提示并跳过
-          if [ -e "$new_file" ]; then
-          echo "目标文件已存在，跳过: $new_file"
-          continue
-          fi
-          # 重命名文件
-          mv "$file" "$new_file"
-          echo "已重命名: $file -> $new_file"
-          done
-          popd >/dev/null
-          
-
-      - name: Create install.sh scripts
+      - name: Create install.sh script
         run: |
           cat <<EOF > nikki_x86_64/install.sh
           #!/bin/sh
@@ -90,20 +69,15 @@ jobs:
           apk add --allow-untrusted *.apk
           EOF
           chmod +x nikki_x86_64/install.sh
-          cp nikki_x86_64/install.sh nikki_aarch64_cortex-a53/install.sh
-          
 
-      - name: Move nikki directories to makeself
+      - name: Move nikki directory to makeself
         run: |
           mv nikki_x86_64 makeself/
-          mv nikki_aarch64_cortex-a53 makeself/
 
-      - name: Create self-extracting packages
+      - name: Create self-extracting package (x86_64)
         run: |
           cd makeself
           ./makeself.sh nikki_x86_64/ nikki_${{ env.LATEST_TAG }}_x86_64.run "by github action" ./install.sh
-          ./makeself.sh nikki_aarch64_cortex-a53/ nikki_${{ env.LATEST_TAG }}_aarch64_cortex-a53.run "by github action" ./install.sh
-          
 
       - name: Check file sizes
         run: |
@@ -118,7 +92,6 @@ jobs:
       - name: Print release notes
         run: |
           cat ${{ github.workspace }}/info.md
-
 
       - name: Set tag name
         id: vars

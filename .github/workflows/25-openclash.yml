@@ -6,7 +6,7 @@
 # Blog: wkdaily.cpolar.cn
 #=================================================
 
-name: Make 25-OpenClash run files 
+name: Make 25-OpenClash run files
 
 on:
   schedule:
@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Create OpenClash & openclash directory for git & apk
-        run: mkdir -p OpenClash openclash-x86 openclash-a53
+        run: mkdir -p OpenClash openclash
         
       - name: Checkout package branch to OpenClash directory
         uses: actions/checkout@v4
@@ -30,8 +30,7 @@ jobs:
           
       - name: Copy latest openclash APK to openclash directory
         run: |
-          cp OpenClash/master/*.apk openclash-x86
-          cp OpenClash/master/*.apk openclash-a53
+          cp OpenClash/master/*.apk openclash/
 
       - name: Get version info
         id: extract_version
@@ -52,18 +51,15 @@ jobs:
       - name: list all cores on core branch
         run: ls Meta/master/meta
 
-      - name: Copy latest meta core to openclash directory
+      - name: Copy latest meta core to openclash directory (x86_64 only)
         run: |
-          tar -xzvf Meta/master/meta/clash-linux-amd64-v1.tar.gz -C openclash-x86
-          tar -xzvf Meta/master/meta/clash-linux-arm64.tar.gz -C openclash-a53
-          mv openclash-x86/clash openclash-x86/clash_meta
-          mv openclash-a53/clash openclash-a53/clash_meta
-          ls openclash-x86
-          ls openclash-a53
+          tar -xzvf Meta/master/meta/clash-linux-amd64-v1.tar.gz -C openclash
+          mv openclash/clash openclash/clash_meta
+          ls openclash
 
       - name: Create install.sh script save to openclash directory
         run: |
-          cat << 'EOF' > openclash-x86/install.sh
+          cat << 'EOF' > openclash/install.sh
           apk update
           if [ $? -ne 0 ]; then
               echo "update failed。"
@@ -80,22 +76,17 @@ jobs:
               exit 0
           fi
           EOF
-          chmod +x openclash-x86/install.sh
-          cp openclash-x86/install.sh openclash-a53/install.sh
-          chmod +x openclash-a53/install.sh
+          chmod +x openclash/install.sh
 
       - name: Clone makeself repository for self-extracting installer
         run: | 
           git clone https://github.com/megastep/makeself.git
 
-      
-      - name: move openclash directory to makeself & create run
+      - name: move openclash directory to makeself & create run (x86_64)
         run: |
-          mv openclash-x86 makeself/
-          mv openclash-a53 makeself/
+          mv openclash makeself/
           cd makeself
-          ./makeself.sh openclash-x86/ openclash-x86-64-${{ env.version }}.run "by github action" ./install.sh
-          ./makeself.sh openclash-a53/ openclash-aarch64_cortex-a53-${{ env.version }}.run "by github action" ./install.sh
+          ./makeself.sh openclash/ openclash-x86-64-${{ env.version }}.run "by github action" ./install.sh
       
       - name: Set tag name
         id: vars

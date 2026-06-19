@@ -6,7 +6,6 @@
 # Blog: wkdaily.cpolar.cn
 #=================================================
 
-
 name: Make 25-clashoo latest Version
 
 on:
@@ -59,12 +58,18 @@ jobs:
       - name: Download apk files
         run: |
           mkdir -p x86 arm64
+          # 如果 URL 为空则提前失败（避免 wget 下载到名为空文件）
+          for url in "$X86_URL" "$ARM_URL" "$LUCI_MAIN_URL" "$LUCI_I18N_URL"; do
+            if [ -z "$url" ]; then
+              echo "错误：检测到空的下载 URL，请检查 release.json 中的资产名称是否匹配。"
+              exit 1
+            fi
+          done
+
           wget -q "$X86_URL" -P x86/
           wget -q "$ARM_URL" -P arm64/
-          
           wget -q "$LUCI_MAIN_URL" -P x86/
           wget -q "$LUCI_MAIN_URL" -P arm64/
-          
           wget -q "$LUCI_I18N_URL" -P x86/
           wget -q "$LUCI_I18N_URL" -P arm64/
 
@@ -76,7 +81,8 @@ jobs:
 
       - name: Create install.sh scripts
         run: |
-          cat <<EOF > x86/install.sh
+          # 使用 'EOF' 防止 $? 等变量被当前 shell 展开
+          cat <<'EOF' > x86/install.sh
           #!/bin/sh
           apk update
           if [ $? -ne 0 ]; then
@@ -109,7 +115,6 @@ jobs:
         run: |
           release_name=$(TZ="Asia/Shanghai" date +'%Y-%m-%d %H:%M Build')
           echo "RELEASE_NAME=$release_name" >> $GITHUB_ENV
-
 
       - name: Set tag name
         id: vars

@@ -38,28 +38,23 @@ jobs:
             | select(.name | test("clashoo-.*-x86_64.apk")) 
             | .browser_download_url' release.json)
 
-          ARM_URL=$(jq -r -c '.assets[] 
-            | select(.name | test("clashoo-.*-aarch64_cortex-a53.apk")) 
-            | .browser_download_url' release.json)
-
           LUCI_MAIN_URL=$(jq -r -c '.assets[] 
-            | select(.name | test("luci-app-clashoo-.*all.apk")) 
+            | select(.name | test("luci-app-clashoo-.*-x86_64.apk")) 
             | .browser_download_url' release.json)
 
           LUCI_I18N_URL=$(jq -r -c '.assets[] 
-            | select(.name | test("luci-i18n-clashoo-zh-cn-.*all.apk")) 
+            | select(.name | test("luci-i18n-clashoo-zh-cn-.*-x86_64.apk")) 
             | .browser_download_url' release.json)
 
           echo "X86_URL=$X86_URL" >> $GITHUB_ENV
-          echo "ARM_URL=$ARM_URL" >> $GITHUB_ENV
           echo "LUCI_MAIN_URL=$LUCI_MAIN_URL" >> $GITHUB_ENV
           echo "LUCI_I18N_URL=$LUCI_I18N_URL" >> $GITHUB_ENV
 
       - name: Download apk files
         run: |
-          mkdir -p x86 arm64
+          mkdir -p x86
           # 如果 URL 为空则提前失败（避免 wget 下载到名为空文件）
-          for url in "$X86_URL" "$ARM_URL" "$LUCI_MAIN_URL" "$LUCI_I18N_URL"; do
+          for url in "$X86_URL" "$LUCI_MAIN_URL" "$LUCI_I18N_URL"; do
             if [ -z "$url" ]; then
               echo "错误：检测到空的下载 URL，请检查 release.json 中的资产名称是否匹配。"
               exit 1
@@ -67,11 +62,8 @@ jobs:
           done
 
           wget -q "$X86_URL" -P x86/
-          wget -q "$ARM_URL" -P arm64/
           wget -q "$LUCI_MAIN_URL" -P x86/
-          wget -q "$LUCI_MAIN_URL" -P arm64/
           wget -q "$LUCI_I18N_URL" -P x86/
-          wget -q "$LUCI_I18N_URL" -P arm64/
 
           # 从 x86 的 clashoo 文件名提取日期版本号
           fname=$(basename "$X86_URL")
@@ -94,18 +86,16 @@ jobs:
           apk add --allow-untrusted luci-i18n-clashoo-zh-cn-*.apk
           EOF
           chmod +x x86/install.sh
-          cp x86/install.sh arm64/install.sh
+          cp x86/install.sh
 
       - name: Move directories to makeself
         run: |
           mv x86 makeself/
-          mv arm64 makeself/
 
       - name: Create self-extracting packages
         run: |
           cd makeself
           ./makeself.sh x86/ clashoo-${VERSION}-x86_64.run "by github action" ./install.sh
-          ./makeself.sh arm64/ clashoo-${VERSION}-aarch64_a53.run "by github action" ./install.sh
 
       - name: Check file sizes
         run: |

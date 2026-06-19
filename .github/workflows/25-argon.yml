@@ -31,8 +31,7 @@ jobs:
       - name: 📋 拷贝 install25.sh 到各平台目录
         run: |
           cp shell/install25.sh x86_64/install25.sh
-          cp shell/install25.sh aarch64_generic/install25.sh
-          chmod +x x86_64/install25.sh aarch64_generic/install25.sh
+          chmod +x x86_64/install25.sh
 
       - name: 🔍 提取版本号并打包
         id: pack
@@ -51,8 +50,8 @@ jobs:
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-          # 打包两个平台
-          for PLATFORM in x86_64 aarch64_generic aarch64_cortex-a53; do
+          # 打包x86平台
+          for PLATFORM in x86_64; do
             makeself "$PLATFORM" "output/25-argon-${VERSION}_${PLATFORM}.run" \
               "argon ${PLATFORM} Installer v${VERSION}" ./install25.sh
           done

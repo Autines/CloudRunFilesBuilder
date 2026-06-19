@@ -34,12 +34,11 @@ jobs:
       - name: Parse asset download URLs
         id: parse_assets
         run: |
-          # 注意：正则表达式中的 . 需要转义为 \.，且末尾用 tr -d '\n' 去掉换行符
-          X86_URL=$(jq -r -c '.assets[] | select(.name | test("clashoo-.*-x86_64\\.apk")) | .browser_download_url' release.json | tr -d '\n')
-          LUCI_MAIN_URL=$(jq -r -c '.assets[] | select(.name | test("luci-app-clashoo-.*-x86_64\\.apk")) | .browser_download_url' release.json | tr -d '\n')
-          LUCI_I18N_URL=$(jq -r -c '.assets[] | select(.name | test("luci-i18n-clashoo-zh-cn-.*-x86_64\\.apk")) | .browser_download_url' release.json | tr -d '\n')
+          # 精确匹配文件名，并用 head -1 确保只取第一个，再用 tr 清除换行
+          X86_URL=$(jq -r -c '.assets[] | select(.name | test("^clashoo-.*-x86_64\\.apk$")) | .browser_download_url' release.json | head -1 | tr -d '\n')
+          LUCI_MAIN_URL=$(jq -r -c '.assets[] | select(.name | test("^luci-app-clashoo-.*-x86_64\\.apk$")) | .browser_download_url' release.json | head -1 | tr -d '\n')
+          LUCI_I18N_URL=$(jq -r -c '.assets[] | select(.name | test("^luci-i18n-clashoo-zh-cn-.*-x86_64\\.apk$")) | .browser_download_url' release.json | head -1 | tr -d '\n')
 
-          # 使用 printf 写入环境变量，避免 echo 添加额外空格或换行
           printf "X86_URL=%s\n" "$X86_URL" >> $GITHUB_ENV
           printf "LUCI_MAIN_URL=%s\n" "$LUCI_MAIN_URL" >> $GITHUB_ENV
           printf "LUCI_I18N_URL=%s\n" "$LUCI_I18N_URL" >> $GITHUB_ENV
@@ -47,7 +46,6 @@ jobs:
       - name: Download apk files
         run: |
           mkdir -p x86
-          # 检查 URL 是否为空
           for url in "$X86_URL" "$LUCI_MAIN_URL" "$LUCI_I18N_URL"; do
             if [ -z "$url" ]; then
               echo "错误：检测到空的下载 URL，请检查 release.json 中的资产名称是否匹配。"
@@ -59,7 +57,6 @@ jobs:
           wget -q "$LUCI_MAIN_URL" -P x86/
           wget -q "$LUCI_I18N_URL" -P x86/
 
-          # 提取版本号（日期部分）
           fname=$(basename "$X86_URL")
           VERSION=$(echo "$fname" | grep -oP '\d{4}\.\d{2}\.\d{2}')
           printf "VERSION=%s\n" "$VERSION" >> $GITHUB_ENV
@@ -67,7 +64,6 @@ jobs:
 
       - name: Create install.sh scripts
         run: |
-          # 使用 'EOF' 防止 $? 等变量被当前 shell 展开
           cat <<'EOF' > x86/install.sh
           #!/bin/sh
           apk update
@@ -80,7 +76,6 @@ jobs:
           apk add --allow-untrusted luci-i18n-clashoo-zh-cn-*.apk
           EOF
           chmod +x x86/install.sh
-          # 不需要再复制到 arm64，因为只构建 x86
 
       - name: Move directories to makeself
         run: |

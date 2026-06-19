@@ -34,26 +34,20 @@ jobs:
       - name: Parse asset download URLs
         id: parse_assets
         run: |
-          X86_URL=$(jq -r -c '.assets[] 
-            | select(.name | test("clashoo-.*-x86_64.apk")) 
-            | .browser_download_url' release.json)
+          # 获取各 APK 的下载 URL，用 tr -d '\n' 去掉末尾换行符
+          X86_URL=$(jq -r -c '.assets[] | select(.name | test("clashoo-.*-x86_64\\.apk")) | .browser_download_url' release.json | tr -d '\n')
+          LUCI_MAIN_URL=$(jq -r -c '.assets[] | select(.name | test("luci-app-clashoo-.*-x86_64\\.apk")) | .browser_download_url' release.json | tr -d '\n')
+          LUCI_I18N_URL=$(jq -r -c '.assets[] | select(.name | test("luci-i18n-clashoo-zh-cn-.*-x86_64\\.apk")) | .browser_download_url' release.json | tr -d '\n')
 
-          LUCI_MAIN_URL=$(jq -r -c '.assets[] 
-            | select(.name | test("luci-app-clashoo-.*-x86_64.apk")) 
-            | .browser_download_url' release.json)
-
-          LUCI_I18N_URL=$(jq -r -c '.assets[] 
-            | select(.name | test("luci-i18n-clashoo-zh-cn-.*-x86_64.apk")) 
-            | .browser_download_url' release.json)
-
-          echo "X86_URL=$X86_URL" >> $GITHUB_ENV
-          echo "LUCI_MAIN_URL=$LUCI_MAIN_URL" >> $GITHUB_ENV
-          echo "LUCI_I18N_URL=$LUCI_I18N_URL" >> $GITHUB_ENV
+          # 使用 printf 写入 $GITHUB_ENV，避免 echo 额外添加空格或转义问题
+          printf "X86_URL=%s\n" "$X86_URL" >> $GITHUB_ENV
+          printf "LUCI_MAIN_URL=%s\n" "$LUCI_MAIN_URL" >> $GITHUB_ENV
+          printf "LUCI_I18N_URL=%s\n" "$LUCI_I18N_URL" >> $GITHUB_ENV
 
       - name: Download apk files
         run: |
           mkdir -p x86
-          # 如果 URL 为空则提前失败（避免 wget 下载到名为空文件）
+          # 如果 URL 为空则提前失败
           for url in "$X86_URL" "$LUCI_MAIN_URL" "$LUCI_I18N_URL"; do
             if [ -z "$url" ]; then
               echo "错误：检测到空的下载 URL，请检查 release.json 中的资产名称是否匹配。"
@@ -68,7 +62,7 @@ jobs:
           # 从 x86 的 clashoo 文件名提取日期版本号
           fname=$(basename "$X86_URL")
           VERSION=$(echo "$fname" | grep -oP '\d{4}\.\d{2}\.\d{2}')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          printf "VERSION=%s\n" "$VERSION" >> $GITHUB_ENV
           echo "提取到版本号: $VERSION"
 
       - name: Create install.sh scripts
@@ -86,7 +80,7 @@ jobs:
           apk add --allow-untrusted luci-i18n-clashoo-zh-cn-*.apk
           EOF
           chmod +x x86/install.sh
-          cp x86/install.sh
+          # 已删除 cp 命令，因为只打包 x86
 
       - name: Move directories to makeself
         run: |
@@ -104,13 +98,13 @@ jobs:
       - name: Preparing release name
         run: |
           release_name=$(TZ="Asia/Shanghai" date +'%Y-%m-%d %H:%M Build')
-          echo "RELEASE_NAME=$release_name" >> $GITHUB_ENV
+          printf "RELEASE_NAME=%s\n" "$release_name" >> $GITHUB_ENV
 
       - name: Set tag name
         id: vars
         run: |
           TODAY=$(date -u -d '+8 hour' +'%Y-%m-%d')
-          echo "tag_name=$TODAY" >> $GITHUB_ENV
+          printf "tag_name=%s\n" "$TODAY" >> $GITHUB_ENV
           
       - name: Upload run files as release assets
         uses: softprops/action-gh-release@v2.1.0

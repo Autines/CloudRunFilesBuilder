@@ -35,19 +35,19 @@ jobs:
       - name: Parse asset download URLs
         id: parse_assets
         run: |
-          X86_URL=$(jq -r '.assets[] 
+          X86_URL=$(jq -r -c '.assets[] 
             | select(.name | test("clashoo-.*-x86_64.apk")) 
             | .browser_download_url' release.json)
 
-          ARM_URL=$(jq -r '.assets[] 
+          ARM_URL=$(jq -r -c '.assets[] 
             | select(.name | test("clashoo-.*-aarch64_cortex-a53.apk")) 
             | .browser_download_url' release.json)
 
-          LUCI_MAIN_URL=$(jq -r '.assets[] 
+          LUCI_MAIN_URL=$(jq -r -c '.assets[] 
             | select(.name | test("luci-app-clashoo-.*all.apk")) 
             | .browser_download_url' release.json)
 
-          LUCI_I18N_URL=$(jq -r '.assets[] 
+          LUCI_I18N_URL=$(jq -r -c '.assets[] 
             | select(.name | test("luci-i18n-clashoo-zh-cn-.*all.apk")) 
             | .browser_download_url' release.json)
 

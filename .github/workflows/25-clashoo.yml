@@ -36,19 +36,19 @@ jobs:
         id: parse_assets
         run: |
           X86_URL=$(jq -r '.assets[] 
-            | select(.name | test("clashoo_.*_x86_64.apk")) 
+            | select(.name | test("clashoo_.*-x86_64.apk")) 
             | .browser_download_url' release.json)
 
           ARM_URL=$(jq -r '.assets[] 
-            | select(.name | test("clashoo_.*_aarch64_cortex-a53.apk")) 
+            | select(.name | test("clashoo_.*-aarch64_cortex-a53.apk")) 
             | .browser_download_url' release.json)
 
           LUCI_MAIN_URL=$(jq -r '.assets[] 
-            | select(.name | test("luci-app-clashoo_.*all.apk")) 
+            | select(.name | test("luci-app-clashoo-.*all.apk")) 
             | .browser_download_url' release.json)
 
           LUCI_I18N_URL=$(jq -r '.assets[] 
-            | select(.name | test("luci-i18n-clashoo-zh-cn_.*all.apk")) 
+            | select(.name | test("luci-i18n-clashoo-zh-cn-.*all.apk")) 
             | .browser_download_url' release.json)
 
           echo "X86_URL=$X86_URL" >> $GITHUB_ENV
@@ -83,9 +83,9 @@ jobs:
               echo "update failed。"
               exit 1
           fi
-          apk add --allow-untrusted clashoo_*.apk
-          apk add --allow-untrusted luci-app-clashoo_*.apk
-          apk add --allow-untrusted luci-i18n-clashoo-zh-cn_*.apk
+          apk add --allow-untrusted clashoo-*.apk
+          apk add --allow-untrusted luci-app-clashoo-*.apk
+          apk add --allow-untrusted luci-i18n-clashoo-zh-cn-*.apk
           EOF
           chmod +x x86/install.sh
           cp x86/install.sh arm64/install.sh
@@ -98,8 +98,8 @@ jobs:
       - name: Create self-extracting packages
         run: |
           cd makeself
-          ./makeself.sh x86/ clashoo_${VERSION}_x86_64.run "by github action" ./install.sh
-          ./makeself.sh arm64/ clashoo_${VERSION}_aarch64_a53.run "by github action" ./install.sh
+          ./makeself.sh x86/ clashoo-${VERSION}-x86_64.run "by github action" ./install.sh
+          ./makeself.sh arm64/ clashoo-${VERSION}-aarch64_a53.run "by github action" ./install.sh
 
       - name: Check file sizes
         run: |
